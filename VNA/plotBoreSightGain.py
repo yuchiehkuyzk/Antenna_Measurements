@@ -166,11 +166,15 @@ if __name__=="__main__":
     AllCol = ListLFBFCol + ListLFAFCol
     TestList = ['LPH_LFBF_H_E','LPH_LFBF_H_CoPolDiagonalCable','LPH_LFBF_H_CoPolDualDiagFerriteSthCable','LPH_LFBF_H_StraightwAbsCable','LPH_LFBF_H_CoPoInvertedlDualDiagFerriteSthCable','LPH_LFBF_H_CoPolDiagonalFerrite2Cable','LPH_LFBF_H_CoPolStraightCable','LPH_LFBF_H_CoPolDiagFerriteSthCable','LPH_LFBF_H_CoPolDiagonalFerriteCable','LPH_LFBF_H_CoPolDiagFerritewAbsCable','LPH_LFBF_H_CoPolDiagonalSpaceCable','LPH_LFBF_H_CoPolDiagonal5inSpaceCable','LPH_LFBF_H_CoPolDualDiagCable']
     TestList_short = ['LPH_LFBF_H_E','LPH_LFBF_H_CoPolStraightCable']
-    angle = 0
+    angle = 60
     CAL='spec'
     directory = '../../beampattern/UNCal/LFBF/'
     Nangle=181   
-    MeasurementList = ['LPH_LFBF_H_E']
+    MeasurementList = ['LPV_LFBF_H_H']
+
+    #========================
+    #       Boresight       #
+    #========================
     if Boresightgain==True:
         fig, ax = plt.subplots()
         for i,measurement in enumerate(MeasurementList):
@@ -194,7 +198,9 @@ if __name__=="__main__":
 
             print(measurement) 
     
-    # Simulation:
+    # ===========================
+    #       Simulation          #
+    #============================
     if SINUOUS_SIM:
         freqepd600 = np.linspace(0.05, 0.60 , num=56)
         RG_14=np.zeros(56)
@@ -205,13 +211,33 @@ if __name__=="__main__":
         for i in range(0,56):
             RG_14[i]=rI.read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,"../data/RG_65in_to600MHz_ReducedCAD_tau075_broadneck_V2_lowampa.csv")
             RG_14_cross[i]=rI.read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,"../data/RG_65in_to600MHz_ReducedCAD_tau075_broadneck_V2_lowampa.csv")
-            RG_Warminster[i]=rI.read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,"../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Eplane_Zport.csv")
-            RG_Warminster_cross[i]=rI.read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,"../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Eplane_Zport.csv")
+            
+            if 'V_H' in MeasurementList[0]:
+                Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Vport_Hplane_Yport.csv"
+                RG_Warminster[i] = rI.read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
+                RG_Warminster_cross[i] = rI.read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
+
+            elif 'H_E' in MeasurementList[0]:
+                Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Eplane_Zport.csv"
+                RG_Warminster[i] = rI.read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
+                RG_Warminster_cross[i] = rI.read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
+            elif 'H_H' in MeasurementList[0]:
+                Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Hplane_Yport.csv"
+                RG_Warminster[i] = rI.read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
+                RG_Warminster_cross[i] = rI.read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
+            else:
+                print("H port E plane is used")
+                Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Eplane_Zport.csv"
+                RG_Warminster[i] = rI.read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
+                RG_Warminster_cross[i] = rI.read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
 
 
         plt.plot(freqepd600*1e3*65/60, RG_14, label='simulation',color='indigo')
         plt.plot(freqepd600*1e3*65/60, RG_14_cross,color='indigo',linestyle='--')
-
+        
+        #================
+        # Tower SIM     #
+        #================
         if SINUOUS_SIM_ROTATOR:
             plt.plot(freqepd600*1e3, RG_Warminster, label='simulation with Rotator details',color='darkorange')
             plt.plot(freqepd600*1e3, RG_Warminster_cross,color='darkorange',linestyle='--')
@@ -229,7 +255,9 @@ if __name__=="__main__":
         plt.close()
 
 
-    # circular plot
+    #============================
+    #       circular plot       #
+    #===========================
     diretory_List = ['../../beampattern/UNCal/LFBF/', '../../beampattern/UNCal/LFBB/'] 
     freq_array = [0.08, 0.1,0.205,0.3,0.4,0.5]
     #freq_array = [0.08, 0.1, 0.205]
@@ -257,7 +285,9 @@ if __name__=="__main__":
                 else:
                     BFgain[i] = gain
                     ax.plot(angle*np.pi/180, gain ,color=plt.get_cmap('gist_heat')(1-float(i)/float(len(freq_array)+2)-0.2),label=str(int(freq*1000))+'MHz',alpha=0.8,linewidth=2)
-        
+        #====================
+        #       SIM         #
+        #====================
         if RadiationPattern_SIM:
             fixedtheta = 90
             sim_angle = np.arange(0,356,5)
@@ -285,7 +315,9 @@ if __name__=="__main__":
         #plt.savefig(f"plot/{measurementBF}_CAL{CAL}_SIM_RotatorTower_{freq_array}.png")
         plt.show()
         
-        # Residuals:
+        #================
+        #   Residuals   #
+        #================
         if RESIDUALS:
             plt.close()
             print(BFgain[0]-BBgain[0])
