@@ -151,13 +151,14 @@ if __name__=="__main__":
     #plot()
     Boresightgain = True
     SINUOUS_SIM = True
-    SINUOUS_SIM_ROTATOR = True
+    SINUOUS_SIM_ROTATOR = False
     RadiationPattern = False
     RadiationPattern_SIM = False
     RESIDUALS = False
 
     ListLFBF = ['LPH_LFBF_H_E','LPH_LFBF_H_XE','LPV_LFBF_H_H','LPV_LFBF_H_XH','LPH_LFBF_V_E','LPH_LFBF_V_XE','LPV_LFBF_V_H','LPV_LFBF_V_XH']
     ListLFBFCol = ['LPH_LFBF_H_E','LPV_LFBF_H_H','LPH_LFBF_V_E','LPV_LFBF_V_H']
+    ListLFBBCol = ['LPH_LFBB_H_E','LPV_LFBB_H_H','LPH_LFBB_V_E','LPV_LFBB_V_H']
     ListLFBFCol_1 = ['LPH_LFBF_H_E']
     ListLFAF = ['LPH_LFAF_H_E','LPH_LFAF_H_XE','LPV_LFAF_H_H','LPV_LFAF_H_XH','LPH_LFAF_V_E','LPH_LFAF_V_XE','LPV_LFAF_V_H','LPV_LFAF_V_XH']
     ListLFAFCol = ['LPH_LFAF_H_E','LPV_LFAF_H_H','LPH_LFAF_V_E','LPV_LFAF_V_H']
@@ -166,12 +167,12 @@ if __name__=="__main__":
     AllCol = ListLFBFCol + ListLFAFCol
     TestList = ['LPH_LFBF_H_E','LPH_LFBF_H_CoPolDiagonalCable','LPH_LFBF_H_CoPolDualDiagFerriteSthCable','LPH_LFBF_H_StraightwAbsCable','LPH_LFBF_H_CoPoInvertedlDualDiagFerriteSthCable','LPH_LFBF_H_CoPolDiagonalFerrite2Cable','LPH_LFBF_H_CoPolStraightCable','LPH_LFBF_H_CoPolDiagFerriteSthCable','LPH_LFBF_H_CoPolDiagonalFerriteCable','LPH_LFBF_H_CoPolDiagFerritewAbsCable','LPH_LFBF_H_CoPolDiagonalSpaceCable','LPH_LFBF_H_CoPolDiagonal5inSpaceCable','LPH_LFBF_H_CoPolDualDiagCable']
     TestList_short = ['LPH_LFBF_H_E','LPH_LFBF_H_CoPolStraightCable']
-    angle = 60
+    angle = 0
     CAL='spec'
     directory = '../../beampattern/UNCal/LFBF/'
     Nangle=181   
-    MeasurementList = ['LPV_LFBF_H_H']
-
+    MeasurementList = ListLFBFCol
+    
     #========================
     #       Boresight       #
     #========================
@@ -247,6 +248,7 @@ if __name__=="__main__":
         plt.ylabel('Gain (dBi)', fontsize=18)
         plt.ylim(-15,10)
         plt.grid()
+        plt.axvspan(85, 500,color = 'black', alpha=0.2,label = '85(Turn on)-500 MHz')
         plt.legend(fontsize=8)
 
         plt.savefig(f"../../plot/{MeasurementList}_Angle{angle}_rotator.png")
