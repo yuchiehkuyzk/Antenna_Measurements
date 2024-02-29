@@ -5,7 +5,7 @@ import cmath
 from scipy.interpolate import interp1d
 import scipy.signal
 import sys
-sys.path.append('/home/yuchieh/Research/code/antenna/sinuous/NCS95R')
+sys.path.append('../Tools')
 import ReadImTools as rI
 
 def ReadWarminsterData(filename, freq, Nangle, CAL):
@@ -149,12 +149,12 @@ def plotBoresightGain(MeasurementList, directory):
 
 if __name__=="__main__":
     #plot()
-    Boresightgain = False
-    SINUOUS_SIM = False
-    SINUOUS_SIM_ROTATOR = False
-    RadiationPattern = True
+    Boresightgain = True
+    SINUOUS_SIM = True
+    SINUOUS_SIM_ROTATOR = True
+    RadiationPattern = False
     RadiationPattern_SIM = False
-    RESIDUALS = True
+    RESIDUALS = False
 
     ListLFBF = ['LPH_LFBF_H_E','LPH_LFBF_H_XE','LPV_LFBF_H_H','LPV_LFBF_H_XH','LPH_LFBF_V_E','LPH_LFBF_V_XE','LPV_LFBF_V_H','LPV_LFBF_V_XH']
     ListLFBFCol = ['LPH_LFBF_H_E','LPV_LFBF_H_H','LPH_LFBF_V_E','LPV_LFBF_V_H']
@@ -166,11 +166,11 @@ if __name__=="__main__":
     AllCol = ListLFBFCol + ListLFAFCol
     TestList = ['LPH_LFBF_H_E','LPH_LFBF_H_CoPolDiagonalCable','LPH_LFBF_H_CoPolDualDiagFerriteSthCable','LPH_LFBF_H_StraightwAbsCable','LPH_LFBF_H_CoPoInvertedlDualDiagFerriteSthCable','LPH_LFBF_H_CoPolDiagonalFerrite2Cable','LPH_LFBF_H_CoPolStraightCable','LPH_LFBF_H_CoPolDiagFerriteSthCable','LPH_LFBF_H_CoPolDiagonalFerriteCable','LPH_LFBF_H_CoPolDiagFerritewAbsCable','LPH_LFBF_H_CoPolDiagonalSpaceCable','LPH_LFBF_H_CoPolDiagonal5inSpaceCable','LPH_LFBF_H_CoPolDualDiagCable']
     TestList_short = ['LPH_LFBF_H_E','LPH_LFBF_H_CoPolStraightCable']
-    angle = 30
+    angle = 0
     CAL='spec'
-    directory = 'beampattern/UNCal/LFBF/'
+    directory = '../../beampattern/UNCal/LFBF/'
     Nangle=181   
-    MeasurementList = ListLFBFCol
+    MeasurementList = ['LPH_LFBF_H_E']
     if Boresightgain==True:
         fig, ax = plt.subplots()
         for i,measurement in enumerate(MeasurementList):
@@ -203,10 +203,10 @@ if __name__=="__main__":
         RG_Warminster_cross=np.zeros(56)
         fixedtheta=90
         for i in range(0,56):
-            RG_14[i]=rI.read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,"/home/yuchieh/Research/code/antenna/sinuous/data/XF_Simulation/RG_65in_to600MHz_ReducedCAD_tau075_broadneck_V2_lowampa.csv")
-            RG_14_cross[i]=rI.read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,"/home/yuchieh/Research/code/antenna/sinuous/data/XF_Simulation/RG_65in_to600MHz_ReducedCAD_tau075_broadneck_V2_lowampa.csv")
-            RG_Warminster[i]=rI.read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,"/home/yuchieh/Research/code/antenna/sinuous/data/XF_Simulation/RG_60in_to600MHz_Warminster_rotators_details.csv")
-            RG_Warminster_cross[i]=rI.read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,"/home/yuchieh/Research/code/antenna/sinuous/data/XF_Simulation/RG_60in_to600MHz_Warminster_rotators_details.csv")
+            RG_14[i]=rI.read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,"../data/RG_65in_to600MHz_ReducedCAD_tau075_broadneck_V2_lowampa.csv")
+            RG_14_cross[i]=rI.read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,"../data/RG_65in_to600MHz_ReducedCAD_tau075_broadneck_V2_lowampa.csv")
+            RG_Warminster[i]=rI.read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,"../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Eplane_Zport.csv")
+            RG_Warminster_cross[i]=rI.read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,"../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Eplane_Zport.csv")
 
 
         plt.plot(freqepd600*1e3*65/60, RG_14, label='simulation',color='indigo')
@@ -223,14 +223,14 @@ if __name__=="__main__":
         plt.grid()
         plt.legend(fontsize=8)
 
-        plt.savefig(f"plot/{MeasurementList}_Angle{angle}_rotator.png")
+        plt.savefig(f"../../plot/{MeasurementList}_Angle{angle}_rotator.png")
 
         plt.show()
         plt.close()
 
 
     # circular plot
-    diretory_List = ['beampattern/UNCal/LFBF/', 'beampattern/UNCal/LFBB/'] 
+    diretory_List = ['../../beampattern/UNCal/LFBF/', '../../beampattern/UNCal/LFBB/'] 
     freq_array = [0.08, 0.1,0.205,0.3,0.4,0.5]
     #freq_array = [0.08, 0.1, 0.205]
     #freq_array = [0.3,0.4,0.5]
@@ -266,7 +266,7 @@ if __name__=="__main__":
                 for j, angle_phi in enumerate(sim_angle):
                     print(angle_phi)
                     #Sim_gain_phi[j] = rI.read_Hpol_Hgain(freq*60/65,fixedtheta,angle_phi,"/home/yuchieh/Research/code/antenna/sinuous/data/XF_Simulation/RG_65in_to600MHz_ReducedCAD_tau075_broadneck_V2_lowampa.csv")
-                    Sim_gain_phi[j] = rI.read_Hpol_Hgain(freq,fixedtheta,angle_phi,"/home/yuchieh/Research/code/antenna/sinuous/data/XF_Simulation/RG_60in_to600MHz_Warminster_rotators_details_Hport_Eplane.csv")
+                    Sim_gain_phi[j] = rI.read_Hpol_Hgain(freq,fixedtheta,angle_phi,"../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Eplane.csv")
                 ax.plot(sim_angle*np.pi/180, Sim_gain_phi ,color=plt.get_cmap('gist_heat')(1-float(i)/float(len(freq_array)+2)-0.2),alpha=0.8,linewidth=2, linestyle='--')
         
 
@@ -296,6 +296,6 @@ if __name__=="__main__":
             plt.xlim(-60,60)
             plt.ylim(-10,10)
             plt.legend()
-            plt.savefig(f"plot/Residuals_{measurementBF}_CAL{CAL}_{freq_array}.png")
+            plt.savefig(f"../../plot/Residuals_{measurementBF}_CAL{CAL}_{freq_array}.png")
             plt.show()
 
