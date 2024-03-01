@@ -418,6 +418,10 @@ def ImpulseResponse():
                 Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Hplane_Yport.csv"
                 RG_Warminster[i]=read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
                 RG_Warminster_cross[i]=read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
+            elif 'V_E' in measurementList[0]:
+                Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Vport_Eplane_Zport.csv"
+                RG_Warminster[i]=read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
+                RG_Warminster_cross[i]=read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
             else:
                 print("H port E plane is used")
                 Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Eplane_Zport.csv"
