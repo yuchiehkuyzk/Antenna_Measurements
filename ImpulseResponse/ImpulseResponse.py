@@ -11,6 +11,11 @@ import sys
 sys.path.append('../VNA')
 import plotBoreSightGain as VNA
 
+sys.path.append('../../rftoolkit')
+from rftoolkit import waveform, tx2rx, vna
+
+from scipy.constants import c
+
 #sys.path.append('/home/yzk5303/Trigger')
 #import waveform_t as wt
 
@@ -233,17 +238,18 @@ def ImpulseResponse():
     S21 = True
     LPDA = True
     PLOT_LPDA = False
-    N_LPDA = 100
+    N_LPDA = 500
     savetxt= False
     
     SINUOUS = True
-    N_SINUOUS = 100
+    N_SINUOUS = 300
     SINUOUS_SIM = True
-    SINUOUS_SIM_ROTATOR = True
-    PLOT_VNA = False
-    PLOT = True
-    savefigname = '../../plot/Test_Gain_Sinuous_Pulsing'
-    
+    SINUOUS_SIM_ROTATOR = False
+    PLOT_VNA = True
+    PLOT = False
+    savefigname = '../../plot/Gain_Sinuous_Pulsing'
+    PLOT_BORESIGHT_RESIDUALS =True
+
     SINUOUSPATTERN = False
     SINUOUSPATTERN_SIM = False
 
@@ -352,10 +358,13 @@ def ImpulseResponse():
     #          sinuous               # 
     #=================================
 
-    #measurementList = ['LPH_LFBF_V_XE','LPH_LFBF_V_E','LPV_LFBF_V_H','LPV_LFBF_V_XH']
-    measurementList = ['LPV_LFBF_V_XH']
-    angle = 60
+    measurementList = ['LPH_LFBB_V_XE','LPH_LFBB_V_E','LPV_LFBB_V_H','LPV_LFBB_V_XH']
+    #measurementList = ['LPH_LFBF_V_XE']
+    angle = 0
     colorList = ['darkred','red','rosybrown','sienna']
+
+    Boresight_Gain_Pulsing_Col = []
+    Boresight_Gain_Pulsing_X = []
 
     if SINUOUS:
         angle_file = str(angle)
@@ -366,71 +375,103 @@ def ImpulseResponse():
         elif angle == -5:
             angle_file='-05'
 
-        #plt.figure(figsize=(30, 20))
+        plt.figure(figsize=(30, 20))
         for i,measurement in enumerate(measurementList):
             directory_sinuous = '/data2/PUEO/Warminster/CSV_DATA/LPDA_Sinuous/'+measurement+'_'+angle_file  
             
-            if measurement=='LPH_LFBF_V_XE' or measurement == 'LPH_LFBF_V_E':
+            if measurement=='LPH_LFBF_V_XE' or measurement == 'LPH_LFBF_V_E' or measurement=='LPH_LFBB_V_XE' or measurement == 'LPH_LFBB_V_E':
                 LPDA_gain_used = gain_LPDA_HH
             else:
                 LPDA_gain_used = gain_LPDA_VV
 
             freq_sinuous, average_SIN_gain_ch2, average_SIN_gain_ch3 = impulseReponse_SinuousgainAVG(N_SINUOUS, d_r_sinuous, f_S21_Receiver_V_att,f_S21_Receiver_H_att,f_S21_Pulser_att,LPDA_gain_used,directory_sinuous)
             
-            if measurement=='LPH_LFBF_V_XE' or measurement == 'LPV_LFBF_V_XH':
+            if measurement=='LPH_LFBF_V_XE' or measurement == 'LPV_LFBF_V_XH' or measurement=='LPH_LFBB_V_XE' or measurement == 'LPV_LFBB_V_XH':
                 copol_gain = average_SIN_gain_ch2
                 xpol_gain = average_SIN_gain_ch3
+                Boresight_Gain_Pulsing_Col.append(copol_gain.copy())
+                Boresight_Gain_Pulsing_X.append(xpol_gain.copy())
             else:
                 copol_gain = average_SIN_gain_ch3
                 xpol_gain = average_SIN_gain_ch2
+                Boresight_Gain_Pulsing_Col.append(copol_gain.copy())
+                Boresight_Gain_Pulsing_X.append(xpol_gain.copy())
 
-            plt.plot(freq_sinuous/1e6, copol_gain,color=colorList[i],label='Warminster Pulsing: '+measurement)
-            plt.plot(freq_sinuous/1e6, xpol_gain,color=colorList[i],alpha=0.5, linestyle='--')
-            plt.title(f"$\phi={angle}$")
+
+            plt.plot(freq_sinuous/1e6, copol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),label='Pulsing: '+measurement, linewidth=3)
+            plt.plot(freq_sinuous/1e6, xpol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),alpha=0.8, linestyle='--',linewidth=2)
+            #plt.title(f"$\phi={angle}$")
+
         savefigname = savefigname+"_"+str(measurementList)+"angle"+str(angle)
-            #plt.plot(freq/1e6, average_sinuous_gain_arrayX,color='darkred',linestyle='--')
     
     #=========================
     #       Simulation       #
     #=========================
     if SINUOUS_SIM:
+        
+        if 'BB' in measurementList:
+            angle = angle + 180
+
         freqepd600 = np.linspace(0.05, 0.60 , num=56)
         RG_14=np.zeros(56)
         RG_14_cross=np.zeros(56)
         RG_Warminster=np.zeros(56)
         RG_Warminster_cross=np.zeros(56)
-
+        
         fixedtheta=90
         for i in range(0,56):
-            RG_14[i]=read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,"../data/RG_65in_to600MHz_ReducedCAD_tau075_broadneck_V2_lowampa.csv")
-            RG_14_cross[i]=read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,"../data/RG_65in_to600MHz_ReducedCAD_tau075_broadneck_V2_lowampa.csv")
+            #RG_14[i]=read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,"../data/RG_65in_to600MHz_ReducedCAD_tau075_broadneck_V2_lowampa.csv")
+            #RG_14_cross[i]=read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,"../data/RG_65in_to600MHz_ReducedCAD_tau075_broadneck_V2_lowampa.csv")
 
             if 'V_H' in measurementList[0]:
                 Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Vport_Hplane_Yport.csv"
                 RG_Warminster[i]=read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
                 RG_Warminster_cross[i]=read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
+                
+                sim_file = "../data/RG_65in_to600MHz_Standardard_Vport_Yport.csv"
+                RG_14[i]=read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,sim_file)
+                RG_14_cross[i]=read_Hpol_Hgain(freqepd600[i], fixedtheta, angle,sim_file)
 
             elif 'V_XE' in measurementList[0]:
                 Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Eplane_Zport.csv"
                 RG_Warminster[i]=read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
                 RG_Warminster_cross[i]=read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
+                
+                sim_file = "../data/RG_65in_to600MHz_Standardard_Hport_Zport.csv"
+                RG_14[i]=read_Hpol_Hgain(freqepd600[i], fixedtheta,angle,sim_file)
+                RG_14_cross[i]=read_Hpol_Vgain(freqepd600[i], fixedtheta,angle,sim_file)
+
             elif 'V_XH' in measurementList[0]:
                 Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Hplane_Yport.csv"
                 RG_Warminster[i]=read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
                 RG_Warminster_cross[i]=read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
+
+                sim_file = "../data/RG_65in_to600MHz_Standardard_Hport_Zport.csv"
+                RG_14[i]=read_Hpol_Hgain(freqepd600[i], angle+90, fixedtheta-90,sim_file)
+                RG_14_cross[i]=read_Hpol_Vgain(freqepd600[i], angle+90, fixedtheta-90, sim_file)
+
             elif 'V_E' in measurementList[0]:
                 Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Vport_Eplane_Zport.csv"
                 RG_Warminster[i]=read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
                 RG_Warminster_cross[i]=read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
+
+                sim_file = "../data/RG_65in_to600MHz_Standardard_Vport_Yport.csv"
+                RG_14[i]=read_Hpol_Vgain(freqepd600[i],angle+90, fixedtheta-90, sim_file)
+                RG_14_cross[i]=read_Hpol_Hgain(freqepd600[i], angle+90, fixedtheta-90, sim_file)
+
             else:
                 print("H port E plane is used")
                 Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Eplane_Zport.csv"
                 RG_Warminster[i]=read_Hpol_Hgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
                 RG_Warminster_cross[i]=read_Hpol_Vgain(freqepd600[i],fixedtheta,angle,Tower_sim_file)
+                
+                sim_file = "../data/RG_65in_to600MHz_Standardard_Hport_Zport.csv"
+                RG_14[i]=read_Hpol_Hgain(freqepd600[i], fixedtheta,angle,sim_file)
+                RG_14_cross[i]=read_Hpol_Vgain(freqepd600[i], fixedtheta,angle,sim_file)
 
 
-        plt.plot(freqepd600*1e3*65/60, RG_14, label='simulation',color='indigo')
-        plt.plot(freqepd600*1e3*65/60, RG_14_cross,color='indigo',linestyle='--')
+        plt.plot(freqepd600*1e3*65/60, RG_14, label='simulation',color='indigo',linewidth=3)
+        plt.plot(freqepd600*1e3*65/60, RG_14_cross,color='indigo',linestyle='--',linewidth=2)
 
         if SINUOUS_SIM_ROTATOR:
             plt.plot(freqepd600*1e3, RG_Warminster, label='simulation with Rotator details',color='darkorange')
@@ -440,9 +481,11 @@ def ImpulseResponse():
     #=======================
     measurementList_VNA = ['LPH_LFBF_H_E','LPH_LFBF_V_E','LPV_LFBF_V_H','LPV_LFBF_H_H']
     colorList_VNA = ['darkgreen','olive','darkseagreen','lightseagreen']
+    Boresight_Gain_VNA = []
     if PLOT_VNA:
         for i, measurement in enumerate(measurementList_VNA):
-            freq_array, boresight_gain = VNA.freq_spectrum('/data2/PUEO/Warminster/beampattern/UNCal/LFBF/'+measurement+'.lst', 0, 181, "measured")
+            freq_array, boresight_gain = VNA.freq_spectrum('/data2/PUEO/Warminster/beampattern/UNCal/LFBF/'+measurement+'.lst', 0, 181, "spec")
+            Boresight_Gain_VNA.append(boresight_gain.copy())
             plt.plot(freq_array*1000, boresight_gain, color=colorList_VNA[i],label='Warminster VNA setup: '+ measurement, linewidth=3)
     #========================
     #       SAVE plot       #
@@ -451,20 +494,56 @@ def ImpulseResponse():
 
     plt.xlim(0,700)
     plt.ylim(-15,10)
-    plt.xlabel("MHz",fontsize=16)
-    plt.ylabel("dBi",fontsize=16)
-    plt.xticks(fontsize=13)
-    plt.yticks(fontsize=13)
+    plt.xlabel("MHz",fontsize=40) # 16
+    plt.ylabel("dBi",fontsize=40) # 16
+    plt.xticks(fontsize=30)# 13
+    plt.yticks(fontsize=30)# 13
     #plt.title("Tx:LPDA V; Rx: sinuous: V")
     #plt.title("Sinuous gain at boresight")
-    plt.legend(fontsize=12)
+    plt.legend(fontsize=30) #12
     plt.grid(True)
 
     if PLOT:
         plt.savefig(savefigname+".png")
     plt.show()
+    plt.close()
+
+    #========================
+    #       Residuals       #
+    #========================
+    if PLOT_BORESIGHT_RESIDUALS:
+        plt.figure(figsize=(6.4, 3))
+        Boresight_Gain_Pulsing_Col = np.array(Boresight_Gain_Pulsing_Col)
+        Boresight_Gain_Pulsing_X = np.array(Boresight_Gain_Pulsing_X)
+        
+        f_col = interp1d(freqepd600*1e3*65/60, RG_14)
+        Gain_col_sim = f_col(freq_sinuous[(freq_sinuous>55e6) & (freq_sinuous<600e6)]/1e6)
+        for i,measurement in enumerate(measurementList):
+            #f_col = interp1d(freq_sinuous/1e6, Boresight_Gain_Pulsing_Col[i])
+            plt.plot(freq_sinuous[(freq_sinuous>55e6) & (freq_sinuous<600e6)]/1e6, Boresight_Gain_Pulsing_Col[i][(freq_sinuous>55e6) & (freq_sinuous<600e6)] - Gain_col_sim, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),linewidth=1)
+            print("Mean=", np.mean(Boresight_Gain_Pulsing_Col[i][(freq_sinuous>85e6) & (freq_sinuous<500e6)] - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6)))
+            print("STD=",np.std(Boresight_Gain_Pulsing_Col[i][(freq_sinuous>85e6) & (freq_sinuous<500e6)] - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6)))
 
 
+        Gain_col_sim_VNA = f_col(freq_sinuous[(freq_sinuous>80e6) & (freq_sinuous<550e6)]/1e6)
+        for j, measurement in enumerate(measurementList_VNA):
+            f_VNA = interp1d(freq_array*1000, Boresight_Gain_VNA[j])
+            gain_VNA = f_VNA(freq_sinuous[(freq_sinuous>80e6) & (freq_sinuous<550e6)]/1e6)
+            plt.plot(freq_sinuous[(freq_sinuous>80e6) & (freq_sinuous<550e6)]/1e6, gain_VNA - Gain_col_sim_VNA, color=colorList_VNA[j],linewidth=1)
+            print("Mean=", np.mean(f_VNA(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6) - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6)))
+            print("STD=",np.std(f_VNA(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6) - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6)))
+
+        plt.axvspan(85, 500,color = 'black', alpha=0.2)
+        plt.xlim(0,700)
+        plt.ylim(-5,5)
+        plt.xlabel("Freq (MHz)",fontsize=16) 
+        plt.ylabel("$G_{Measured}$ - $G_{Sim}$ (dBi)",fontsize=16) 
+        plt.xticks(fontsize=13)
+        plt.yticks(fontsize=13)
+        plt.grid()
+
+        plt.savefig("../../plot/Boresight_Residuals_pulsing.png")
+        print("Boresight_Residuals_pulsing_VNA.png is saved")    
     #=================================
     #       RADIATION PATTERN       #
     #=================================
@@ -742,10 +821,65 @@ def Sinuous_IR_Waveform():
     plt.show()
 
 
+def IR_waveforms():
+    phaseLP = 56.5 / 2 
+    d_r = (43*12+1+3/4)*0.0254 # Distance btw backs of two LPDA
+    d_r_LPDA = (43*12+1+3/4 - phaseLP*2)*0.0254 # Assume physical center as the Phase center
+
+    addCompS21 = []
+    subCompS21 = []
+    s21_data_dir = '/data2/PUEO/Warminster/pulsingSetupS21s/'
+    S21_pulse_List = [s21_data_dir+'S2A1.s2p', s21_data_dir+'S2A2.s2p', s21_data_dir+'A2C1.s2p']    
+    S21_Rx_V_List = [s21_data_dir+'S1T.s2p', s21_data_dir+'RAVC3.s2p']
+    S21_Rx_H_List = [s21_data_dir+'S1T.s2p', s21_data_dir+'RBHC2.s2p']
+     
     
+    for s2p in S21_pulse_List:
+        v = vna.S2P(s2p)
+        v.smooth()
+        addCompS21.append(v)
+    for s2p in S21_Rx_H_List:
+        v = vna.S2P(s2p)
+        v.smooth()
+        subCompS21.append(v)
+    #====================
+    #Averaging waveform
+    #====================
+    Dir_name = '/data2/PUEO/Warminster/CSV_DATA/LPDA_LPDA/LPH_LPH_0/'   
+    LPDA_t_v = []
+    Pulse_t_v = []
+
+    file_list = os.listdir(Dir_name)
+    for i, filename in enumerate(file_list):
+        if i>0 and i<20:
+            Time, ch1, ch2, ch3=ReadData(Dir_name+'/'+filename)
+
+            if np.isnan(ch1).any() or np.isnan(ch2).any() or np.isnan(ch3).any():
+                print("nan!")
+                continue
+            print(len(LPDA_t_v))
+            LPDA_t_v.append(ch2)
+            Pulse_t_v.append(ch1)
+
+    LPDA_t_v_avg = np.mean(np.array(LPDA_t_v), axis = 0)
+    Pulse_t_v_avg = np.mean(np.array(Pulse_t_v), axis = 0)
+    
+    rx_data = [Time, LPDA_t_v_avg]
+    pulse_data = [Time, Pulse_t_v_avg]
+
+    #=====================================
+    # Use tx2rx func to calculate impulse
+    #======================================
+
+    impResp_t, impResp, impResp_f, impRespfft = tx2rx.impulseResponse(rx_data, pulse_data, d_r_LPDA, addComponentsS21=addCompS21, subtractComponentsS21=subCompS21,freqStep='max',verbose=0, returnDomain='both')
+    
+    plt.plot(impResp_t,impResp)
+    plt.savefig('test_LPDA_ImpulseResponse.png')
+
 if __name__=="__main__":
     #Sinuous_IR_Waveform()
-    ImpulseResponse()
+    #ImpulseResponse()
+    IR_waveforms()
     #Dir_name = '/home/yuchieh/Research/code/antenna/sinuous/Measurement/Warminster/ImpulseResponse/data/08_02_2024_impulse_measurements/LPH_LPH_0'
 
     #A_complex_deconv = LPDA_IR_Waveform(Dir_name)

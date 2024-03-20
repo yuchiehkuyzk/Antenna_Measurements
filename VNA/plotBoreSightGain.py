@@ -59,7 +59,7 @@ def ReadWarminsterData(filename, freq, Nangle, CAL):
             CAL_POL = 'CAL_LPDA_VPol_80MHz.lst'
         else:
             print("CAL not found!")
-        with open("/home/yuchieh/Research/code/antenna/sinuous/Measurement/Warminster/beampattern/UNCal/CAL/"+CAL_POL, "r") as file:
+        with open("/data2/PUEO/Warminster/beampattern/UNCal/CAL/"+CAL_POL, "r") as file: # /home/yuchieh/Research/code/antenna/sinuous/Measurement/Warminster/beampattern/UNCal/CAL/
             # Flag to indicate whether we've found the target line
             found_target_line = False
             # Counter to keep track of the lines read after the target line
@@ -94,7 +94,7 @@ def ReadWarminsterData(filename, freq, Nangle, CAL):
         
         #Read Spec sheet
         if CAL == 'spec':
-            data = np.loadtxt("/home/yuchieh/Research/code/antenna/sinuous/Measurement/Warminster/beampattern/UNCal/CAL/LP196(0.080-4.000GHz).tbl",skiprows=1,delimiter=',',dtype=float)
+            data = np.loadtxt("/data2/PUEO/Warminster/beampattern/UNCal/CAL/LP196(0.080-4.000GHz).tbl",skiprows=1,delimiter=',',dtype=float) #/home/yuchieh/Research/code/antenna/sinuous/Measurement/Warminster/beampattern/UNCal/CAL
         else:
             data = np.loadtxt("/home/yuchieh/Research/code/antenna/sinuous/Measurement/Warminster/ImpulseResponse/LPDA_HH_Measured.txt",skiprows=1,delimiter=' ',dtype=float)
         spec_freq=data[:,0] #GHz
@@ -149,11 +149,12 @@ def plotBoresightGain(MeasurementList, directory):
 
 if __name__=="__main__":
     #plot()
-    Boresightgain = True
-    SINUOUS_SIM = True
-    SINUOUS_SIM_ROTATOR = True
-    RadiationPattern = False
-    RadiationPattern_SIM = False
+    Boresightgain = False
+    SINUOUS_SIM = False
+    SINUOUS_SIM_ROTATOR = False
+    RadiationPattern = True
+    RadiationPattern_SIM = True
+    PATTERN_SIM_TOWER = True
     RESIDUALS = False
 
     ListLFBF = ['LPH_LFBF_H_E','LPH_LFBF_H_XE','LPV_LFBF_H_H','LPV_LFBF_H_XH','LPH_LFBF_V_E','LPH_LFBF_V_XE','LPV_LFBF_V_H','LPV_LFBF_V_XH']
@@ -169,7 +170,7 @@ if __name__=="__main__":
     TestList_short = ['LPH_LFBF_H_E','LPH_LFBF_H_CoPolStraightCable']
     angle = 60
     CAL='spec'
-    directory = '../../beampattern/UNCal/LFBF/'
+    directory = '/data2/PUEO/Warminster/beampattern/UNCal/LFBF/' # ../../beampattern/UNCal/LFBF/
     Nangle=181   
     MeasurementList = ListLFBFCol_1
     
@@ -282,7 +283,7 @@ if __name__=="__main__":
         plt.legend(fontsize=8)
 
         plt.savefig(f"../../plot/"+savefilename+".png")
-
+        print(savefilename+".png is saved")
         plt.show()
         plt.close()
 
@@ -290,22 +291,24 @@ if __name__=="__main__":
     #============================
     #       circular plot       #
     #===========================
-    diretory_List = ['../../beampattern/UNCal/LFBF/', '../../beampattern/UNCal/LFBB/'] 
+    #diretory_List = ['../../beampattern/UNCal/LFBF/', '../../beampattern/UNCal/LFBB/'] 
+    diretory_List = ['/data2/PUEO/Warminster/beampattern/UNCal/LFBF/', '/data2/PUEO/Warminster/beampattern/UNCal/LFBB/'] 
     #freq_array = [0.08, 0.1,0.205,0.3,0.4,0.5]
-    freq_array = [0.08, 0.1, 0.205]
-    #freq_array = [0.3,0.4,0.5]
+    #freq_array = [0.08, 0.1, 0.205]
+    freq_array = [0.3,0.4,0.5]
     #colorList=["firebrick","darkorange","yellowgreen","darkgreen","steelblue","blueviolet","purple","darkblue"]
     measurementBF = 'LPV_LFBF_V_H'
     measurementBB = 'LPV_LFBB_V_H'
+    savefigname = f"{measurementBF}_CAL{CAL}_{freq_array}"
     BFgain = np.zeros((len(freq_array), Nangle))
     BBgain = np.zeros((len(freq_array), Nangle))
     plot_angle = np.zeros(Nangle)
     fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
     if RadiationPattern:
         for directory in diretory_List:
-            if directory=='../../beampattern/UNCal/LFBF/':
+            if 'LFBF' in directory:
                 measurement = measurementBF
-            elif directory=='../../beampattern/UNCal/LFBB/':
+            elif 'LFBB' in directory:
                 measurement = measurementBB
             for i,freq in enumerate(freq_array):
                 angle, gain = ReadWarminsterData(str(directory)+measurement+'.lst', freq, Nangle, CAL)
@@ -323,6 +326,7 @@ if __name__=="__main__":
         if RadiationPattern_SIM:
             fixedtheta = 90
             sim_angle = np.arange(0,356,5)
+            savefigname = savefigname + '_sim'
             for i, freq in enumerate(freq_array):
                 Sim_gain_phi = np.zeros(len(sim_angle))
                 RG_Warminster_gain_phi = np.zeros(len(sim_angle))
@@ -330,12 +334,21 @@ if __name__=="__main__":
                     print(angle_phi)
                     #Sim_gain_phi[j] = rI.read_Hpol_Hgain(freq*60/65,fixedtheta,angle_phi,"/home/yuchieh/Research/code/antenna/sinuous/data/XF_Simulation/RG_65in_to600MHz_ReducedCAD_tau075_broadneck_V2_lowampa.csv")
                     if 'V_H' in measurementBF:
-                        Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Vport_Hplane_Yport.csv"
-                        RG_Warminster_gain_phi[j] = rI.read_Hpol_Vgain(freq,fixedtheta,angle_phi,Tower_sim_file)
+                        if PATTERN_SIM_TOWER:
+                            Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Vport_Hplane_Yport.csv"
+                            RG_Warminster_gain_phi[j] = rI.read_Hpol_Vgain(freq,fixedtheta,angle_phi,Tower_sim_file)
+                        
+                        sim_file = "../data/RG_65in_to600MHz_Standardard_Vport_Yport.csv"
+                        Sim_gain_phi[j]=rI.read_Hpol_Vgain(freq*60/65,fixedtheta,angle_phi,sim_file)
 
                     elif 'H_E' in measurementBF:
-                        Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Eplane_Zport.csv"
-                        RG_Warminster_gain_phi[j] = rI.read_Hpol_Hgain(freq,fixedtheta,angle_phi,Tower_sim_file)
+                        if PATTERN_SIM_TOWER:
+                            Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Eplane_Zport.csv"
+                            RG_Warminster_gain_phi[j] = rI.read_Hpol_Hgain(freq,fixedtheta,angle_phi,Tower_sim_file)
+
+                        sim_file = "../data/RG_65in_to600MHz_Standardard_Hport_Zport.csv"
+                        Sim_gain_phi[j]=rI.read_Hpol_Hgain(freq*60/65,fixedtheta,angle_phi,sim_file)
+
 
                     elif 'H_H' in measurementBF:
                         Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Hplane_Yport.csv"
@@ -349,10 +362,12 @@ if __name__=="__main__":
                         print("H port E plane is used")
                         Tower_sim_file = "../data/RG_60in_to600MHz_Warminster_rotators_details_Hport_Eplane_Zport.csv"
                         RG_Warminster_gain_phi[i] = rI.read_Hpol_Hgain(freq,fixedtheta,angle_phi,Tower_sim_file)
-                print(sim_angle[(sim_angle <= 90) | (sim_angle >= 270)])
-                print(RG_Warminster_gain_phi[(sim_angle <= 90) | (sim_angle >= 270)])
-                ax.plot(sim_angle[(sim_angle <= 90) | (sim_angle >= 270)]*np.pi/180, RG_Warminster_gain_phi[(sim_angle <= 90) | (sim_angle >= 270)], color=plt.get_cmap('gist_heat')(1-float(i)/float(len(freq_array)+2)-0.2),alpha=0.8,linewidth=2, linestyle='--')
-            
+                if PATTERN_SIM_TOWER:
+                    ax.plot(sim_angle[(sim_angle <= 90) | (sim_angle >= 270)]*np.pi/180, RG_Warminster_gain_phi[(sim_angle <= 90) | (sim_angle >= 270)], color=plt.get_cmap('gist_heat')(1-float(i)/float(len(freq_array)+2)-0.2),alpha=0.8,linewidth=2, linestyle='--')
+                    savefigname = savefigname+"SIM_RotatorTower"
+                else:
+                    ax.plot(sim_angle*np.pi/180, Sim_gain_phi, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(freq_array)+2)-0.2),alpha=0.8,linewidth=2, linestyle='--')
+
 
         #ax.plot(np.arange(0,2*np.pi,0.01),3*np.ones_like(np.arange(0,2*np.pi,0.01)),"--",color="black",alpha=0.8,label='3dBi')
         ax.plot([], [], '--',color='black', label='Simulation')
@@ -366,7 +381,8 @@ if __name__=="__main__":
         ax.set_rmax(10)
         ax.set_rmin(-20)
         
-        plt.savefig(f"../../plot/{measurementBF}_CAL{CAL}_SIM_RotatorTower_{freq_array}.png")
+        plt.savefig(f"../../plot/"+savefigname+".png")
+        print(savefigname+".png is saved")
         plt.show()
         
         #================
