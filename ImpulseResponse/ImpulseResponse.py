@@ -518,20 +518,43 @@ def ImpulseResponse():
         
         f_col = interp1d(freqepd600*1e3*65/60, RG_14)
         Gain_col_sim = f_col(freq_sinuous[(freq_sinuous>55e6) & (freq_sinuous<600e6)]/1e6)
+        
+        Res_Mean_Pulsing = []
+        Res_STD_Pulsing = []
+
         for i,measurement in enumerate(measurementList):
             #f_col = interp1d(freq_sinuous/1e6, Boresight_Gain_Pulsing_Col[i])
             plt.plot(freq_sinuous[(freq_sinuous>55e6) & (freq_sinuous<600e6)]/1e6, Boresight_Gain_Pulsing_Col[i][(freq_sinuous>55e6) & (freq_sinuous<600e6)] - Gain_col_sim, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),linewidth=1)
-            print("Mean=", np.mean(Boresight_Gain_Pulsing_Col[i][(freq_sinuous>85e6) & (freq_sinuous<500e6)] - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6)))
-            print("STD=",np.std(Boresight_Gain_Pulsing_Col[i][(freq_sinuous>85e6) & (freq_sinuous<500e6)] - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6)))
+            mean = np.mean(Boresight_Gain_Pulsing_Col[i][(freq_sinuous>85e6) & (freq_sinuous<500e6)] - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6))
+            std = np.std(Boresight_Gain_Pulsing_Col[i][(freq_sinuous>85e6) & (freq_sinuous<500e6)] - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6))
+            print("Mean=", mean)
+            print("STD=", std)
+            Res_Mean_Pusling.append(mean)
+            Res_STD_Pulsing.append(std)
 
+        
+        Res_Mean_VNA = []
+        Res_STD_VNA = []
 
         Gain_col_sim_VNA = f_col(freq_sinuous[(freq_sinuous>80e6) & (freq_sinuous<550e6)]/1e6)
         for j, measurement in enumerate(measurementList_VNA):
             f_VNA = interp1d(freq_array*1000, Boresight_Gain_VNA[j])
             gain_VNA = f_VNA(freq_sinuous[(freq_sinuous>80e6) & (freq_sinuous<550e6)]/1e6)
             plt.plot(freq_sinuous[(freq_sinuous>80e6) & (freq_sinuous<550e6)]/1e6, gain_VNA - Gain_col_sim_VNA, color=colorList_VNA[j],linewidth=1)
-            print("Mean=", np.mean(f_VNA(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6) - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6)))
-            print("STD=",np.std(f_VNA(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6) - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6)))
+            mean = np.mean(f_VNA(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6) - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6))
+            std = np.std(f_VNA(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6) - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6))
+            print("Mean=", mean)
+            print("STD=", std)
+            Res_Mean_VNA.append(mean)
+            Res_STD_VNA.append(std)
+    
+        Res_Mean_Pusling_avg = np.mean(np.array(Res_Mean_Pulsing),axis=0) 
+        Res_STD_Pusling_avg = np.mean(np.array(Res_STD_Pulsing),axis=0)     
+        Res_Mean_VNA_avg = np.mean(np.array(Res_Mean_VNA,axis=0))
+        Res_STD_VNA_avg = np.mean(np.array(Res_STD_VNA),axis=0)
+
+        plt.text(500, 4, f'{Res_Mean_Pusling_avg}$\pm${Res_STD_Pusling_avg}', fontsize=12, color='darkred') 
+        plt.text(500, 3.5, f'{Res_Mean_VNA_avg}$\pm${Res_STD_VNA_avg}', fontsize=12, color='darkgreen')
 
         plt.axvspan(85, 500,color = 'black', alpha=0.2)
         plt.xlim(0,700)
@@ -828,7 +851,8 @@ def IR_waveforms():
 
     addCompS21 = []
     subCompS21 = []
-    s21_data_dir = '/data2/PUEO/Warminster/pulsingSetupS21s/'
+    #s21_data_dir = '/data2/PUEO/Warminster/pulsingSetupS21s/'
+    s21_data_dir = '/home/yuchieh/Research/code/antenna/sinuous/Measurement/Warminster/ImpulseResponse/data/pulsingSetupS21s'
     S21_pulse_List = [s21_data_dir+'S2A1.s2p', s21_data_dir+'S2A2.s2p', s21_data_dir+'A2C1.s2p']    
     S21_Rx_V_List = [s21_data_dir+'S1T.s2p', s21_data_dir+'RAVC3.s2p']
     S21_Rx_H_List = [s21_data_dir+'S1T.s2p', s21_data_dir+'RBHC2.s2p']
@@ -845,7 +869,8 @@ def IR_waveforms():
     #====================
     #Averaging waveform
     #====================
-    Dir_name = '/data2/PUEO/Warminster/CSV_DATA/LPDA_LPDA/LPH_LPH_0/'   
+    #Dir_name = '/data2/PUEO/Warminster/CSV_DATA/LPDA_LPDA/LPH_LPH_0/'   
+    # Dir_name = '/home/yuchieh/Research/code/antenna/sinuous/Measurement/Warminster/ImpulseResponse/data/08_02_2024_impulse_measurements/LPH_LPH_0/'
     LPDA_t_v = []
     Pulse_t_v = []
 
@@ -874,12 +899,11 @@ def IR_waveforms():
     impResp_t, impResp, impResp_f, impRespfft = tx2rx.impulseResponse(rx_data, pulse_data, d_r_LPDA, addComponentsS21=addCompS21, subtractComponentsS21=subCompS21,freqStep='max',verbose=0, returnDomain='both')
     
     plt.plot(impResp_t,impResp)
-    plt.savefig('test_LPDA_ImpulseResponse.png')
 
 if __name__=="__main__":
     #Sinuous_IR_Waveform()
-    #ImpulseResponse()
-    IR_waveforms()
+    ImpulseResponse()
+    #IR_waveforms()
     #Dir_name = '/home/yuchieh/Research/code/antenna/sinuous/Measurement/Warminster/ImpulseResponse/data/08_02_2024_impulse_measurements/LPH_LPH_0'
 
     #A_complex_deconv = LPDA_IR_Waveform(Dir_name)
