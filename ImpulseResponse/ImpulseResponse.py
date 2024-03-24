@@ -21,6 +21,12 @@ from scipy.constants import c
 
 #sys.path.append('/home/yzk5303/Warminster/Zack_package')
 #from waveform import Waveform
+#fuction that reads TX4 62 HP
+
+def read_ILoss(freq, filename): # GHz
+    data=np.loadtxt(filename)
+    f=interp1d(data[:,0],data[:,1],'linear')
+    return f(freq)
 
 # funcaiton that reads XFdtd SIM data
 def read_gain(freq, theta, phi, filename):
@@ -358,7 +364,8 @@ def ImpulseResponse():
     #          sinuous               # 
     #=================================
 
-    measurementList = ['LPH_LFBB_V_XE','LPH_LFBB_V_E','LPV_LFBB_V_H','LPV_LFBB_V_XH']
+    measurementList = ['LPH_LFBF_V_XE','LPH_LFBF_V_E','LPV_LFBF_V_H','LPV_LFBF_V_XH']
+    legend_list = ['Pulsing:Hport E','          Vport E','          Vport H','          Hport H']
     #measurementList = ['LPH_LFBF_V_XE']
     angle = 0
     colorList = ['darkred','red','rosybrown','sienna']
@@ -367,6 +374,10 @@ def ImpulseResponse():
     Boresight_Gain_Pulsing_X = []
 
     if SINUOUS:
+
+        if PLOT_BORESIGHT_RESIDUALS:
+            fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [2.5, 1]})
+
         angle_file = str(angle)
         if angle==0:
             angle_file='00'
@@ -397,9 +408,13 @@ def ImpulseResponse():
                 Boresight_Gain_Pulsing_Col.append(copol_gain.copy())
                 Boresight_Gain_Pulsing_X.append(xpol_gain.copy())
 
-
-            plt.plot(freq_sinuous/1e6, copol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),label='Pulsing: '+measurement, linewidth=3)
-            plt.plot(freq_sinuous/1e6, xpol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),alpha=0.8, linestyle='--',linewidth=2)
+            if PLOT_BORESIGHT_RESIDUALS:
+                ax1.plot(freq_sinuous/1e6, copol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),label=legend_list[i], linewidth=1.5)
+                ax1.plot(freq_sinuous/1e6, xpol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),alpha=0.8, linestyle='--',linewidth=1)
+                
+            else:
+                plt.plot(freq_sinuous/1e6, copol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),label='Pulsing: '+measurement, linewidth=3)
+                plt.plot(freq_sinuous/1e6, xpol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),alpha=0.8, linestyle='--',linewidth=2)
             #plt.title(f"$\phi={angle}$")
 
         savefigname = savefigname+"_"+str(measurementList)+"angle"+str(angle)
@@ -468,25 +483,41 @@ def ImpulseResponse():
                 sim_file = "../data/RG_65in_to600MHz_Standardard_Hport_Zport.csv"
                 RG_14[i]=read_Hpol_Hgain(freqepd600[i], fixedtheta,angle,sim_file)
                 RG_14_cross[i]=read_Hpol_Vgain(freqepd600[i], fixedtheta,angle,sim_file)
+            
+            # Balun insertion loss
+            TX4_IL = read_ILoss(freqepd600[i], "../data/TX4_62HP_ILoss.dat")
+            print("Insertion Loss=",freqepd600[i],';',TX4_IL)
+            RG_14[i] = RG_14[i] - TX4_IL
 
-
-        plt.plot(freqepd600*1e3*65/60, RG_14, label='simulation',color='indigo',linewidth=3)
-        plt.plot(freqepd600*1e3*65/60, RG_14_cross,color='indigo',linestyle='--',linewidth=2)
+        if PLOT_BORESIGHT_RESIDUALS:
+            ax1.plot(freqepd600*1e3*65/60, RG_14, label='Simulation w/ balun',color='indigo',linewidth=1.5)
+            ax1.plot(freqepd600*1e3*65/60, RG_14_cross,color='indigo',linestyle='--',linewidth=1)
+        else:
+            plt.plot(freqepd600*1e3*65/60, RG_14, label='simulation',color='indigo',linewidth=3)
+            plt.plot(freqepd600*1e3*65/60, RG_14_cross,color='indigo',linestyle='--',linewidth=2)
 
         if SINUOUS_SIM_ROTATOR:
-            plt.plot(freqepd600*1e3, RG_Warminster, label='simulation with Rotator details',color='darkorange')
-            plt.plot(freqepd600*1e3, RG_Warminster_cross,color='darkorange',linestyle='--')
+            if PLOT_BORESIGHT_RESIDUALS:
+                ax1.plot(freqepd600*1e3, RG_Warminster, label='simulation with Rotator details',color='darkorange')
+                ax1.plot(freqepd600*1e3, RG_Warminster_cross,color='darkorange',linestyle='--')
+            else:
+                plt.plot(freqepd600*1e3, RG_Warminster, label='simulation with Rotator details',color='darkorange')
+                plt.plot(freqepd600*1e3, RG_Warminster_cross,color='darkorange',linestyle='--')
     #=======================
     #          VNA         #
     #=======================
     measurementList_VNA = ['LPH_LFBF_H_E','LPH_LFBF_V_E','LPV_LFBF_V_H','LPV_LFBF_H_H']
+    legend_list = ['VNA:Hport E', '      Vport E','      Vport H', '      Hport H']
     colorList_VNA = ['darkgreen','olive','darkseagreen','lightseagreen']
     Boresight_Gain_VNA = []
     if PLOT_VNA:
         for i, measurement in enumerate(measurementList_VNA):
             freq_array, boresight_gain = VNA.freq_spectrum('/data2/PUEO/Warminster/beampattern/UNCal/LFBF/'+measurement+'.lst', 0, 181, "spec")
             Boresight_Gain_VNA.append(boresight_gain.copy())
-            plt.plot(freq_array*1000, boresight_gain, color=colorList_VNA[i],label='Warminster VNA setup: '+ measurement, linewidth=3)
+            if PLOT_BORESIGHT_RESIDUALS:
+                ax1.plot(freq_array*1000, boresight_gain, color=colorList_VNA[i],label=legend_list[i], linewidth=1.5)
+            else:
+                plt.plot(freq_array*1000, boresight_gain, color=colorList_VNA[i],label='Warminster VNA setup: '+ measurement, linewidth=3)
     #========================
     #       SAVE plot       #
     #========================
@@ -512,7 +543,7 @@ def ImpulseResponse():
     #       Residuals       #
     #========================
     if PLOT_BORESIGHT_RESIDUALS:
-        plt.figure(figsize=(6.4, 3))
+        #plt.figure(figsize=(6.4, 3))
         Boresight_Gain_Pulsing_Col = np.array(Boresight_Gain_Pulsing_Col)
         Boresight_Gain_Pulsing_X = np.array(Boresight_Gain_Pulsing_X)
         
@@ -521,49 +552,87 @@ def ImpulseResponse():
         
         Res_Mean_Pulsing = []
         Res_STD_Pulsing = []
+        
+        Res_Mean_Pulsing_band = []
+        Res_STD_Pulsing_band = []
 
         for i,measurement in enumerate(measurementList):
             #f_col = interp1d(freq_sinuous/1e6, Boresight_Gain_Pulsing_Col[i])
             plt.plot(freq_sinuous[(freq_sinuous>55e6) & (freq_sinuous<600e6)]/1e6, Boresight_Gain_Pulsing_Col[i][(freq_sinuous>55e6) & (freq_sinuous<600e6)] - Gain_col_sim, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),linewidth=1)
             mean = np.mean(Boresight_Gain_Pulsing_Col[i][(freq_sinuous>85e6) & (freq_sinuous<500e6)] - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6))
             std = np.std(Boresight_Gain_Pulsing_Col[i][(freq_sinuous>85e6) & (freq_sinuous<500e6)] - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6))
+            
+            mean_band = np.mean(Boresight_Gain_Pulsing_Col[i][(freq_sinuous>85e6) & (freq_sinuous<300e6)] - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<300e6)]/1e6))
+            std_band = np.std(Boresight_Gain_Pulsing_Col[i][(freq_sinuous>85e6) & (freq_sinuous<300e6)] - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<300e6)]/1e6))
+
             print("Mean=", mean)
             print("STD=", std)
-            Res_Mean_Pusling.append(mean)
+            Res_Mean_Pulsing.append(mean)
             Res_STD_Pulsing.append(std)
+            Res_Mean_Pulsing_band.append(mean_band)
+            Res_STD_Pulsing_band.append(std_band)
+
 
         
         Res_Mean_VNA = []
         Res_STD_VNA = []
+
+        Res_Mean_VNA_band = []
+        Res_STD_VNA_band = []
 
         Gain_col_sim_VNA = f_col(freq_sinuous[(freq_sinuous>80e6) & (freq_sinuous<550e6)]/1e6)
         for j, measurement in enumerate(measurementList_VNA):
             f_VNA = interp1d(freq_array*1000, Boresight_Gain_VNA[j])
             gain_VNA = f_VNA(freq_sinuous[(freq_sinuous>80e6) & (freq_sinuous<550e6)]/1e6)
             plt.plot(freq_sinuous[(freq_sinuous>80e6) & (freq_sinuous<550e6)]/1e6, gain_VNA - Gain_col_sim_VNA, color=colorList_VNA[j],linewidth=1)
+            
             mean = np.mean(f_VNA(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6) - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6))
             std = np.std(f_VNA(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6) - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<500e6)]/1e6))
-            print("Mean=", mean)
-            print("STD=", std)
+            
+            mean_band = np.mean(f_VNA(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<300e6)]/1e6) - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<300e6)]/1e6))
+            std_band = np.std(f_VNA(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<300e6)]/1e6) - f_col(freq_sinuous[(freq_sinuous>85e6) & (freq_sinuous<300e6)]/1e6))
+
+            print("Mean (VNA)=", mean)
+            print("STD (VNA)=", std)
             Res_Mean_VNA.append(mean)
             Res_STD_VNA.append(std)
+            Res_Mean_VNA_band.append(mean_band)
+            Res_STD_VNA_band.append(std_band)
+
     
-        Res_Mean_Pusling_avg = np.mean(np.array(Res_Mean_Pulsing),axis=0) 
-        Res_STD_Pusling_avg = np.mean(np.array(Res_STD_Pulsing),axis=0)     
-        Res_Mean_VNA_avg = np.mean(np.array(Res_Mean_VNA,axis=0))
-        Res_STD_VNA_avg = np.mean(np.array(Res_STD_VNA),axis=0)
+        Res_Mean_Pulsing_avg = np.mean(np.array(Res_Mean_Pulsing)) 
+        Res_STD_Pulsing_avg = np.mean(np.array(Res_STD_Pulsing))     
 
-        plt.text(500, 4, f'{Res_Mean_Pusling_avg}$\pm${Res_STD_Pusling_avg}', fontsize=12, color='darkred') 
-        plt.text(500, 3.5, f'{Res_Mean_VNA_avg}$\pm${Res_STD_VNA_avg}', fontsize=12, color='darkgreen')
+        Res_Mean_Pulsing_band_avg = np.mean(np.array(Res_Mean_Pulsing_band))
+        Res_STD_Pulsing_band_avg = np.mean(np.array(Res_STD_Pulsing_band))
 
-        plt.axvspan(85, 500,color = 'black', alpha=0.2)
+        Res_Mean_VNA_avg = np.mean(np.array(Res_Mean_VNA))
+        Res_STD_VNA_avg = np.mean(np.array(Res_STD_VNA))
+
+        Res_Mean_VNA_band_avg = np.mean(np.array(Res_Mean_VNA_band))
+        Res_STD_VNA_band_avg = np.mean(np.array(Res_STD_VNA_band))
+
+         
         plt.xlim(0,700)
-        plt.ylim(-5,5)
-        plt.xlabel("Freq (MHz)",fontsize=16) 
-        plt.ylabel("$G_{Measured}$ - $G_{Sim}$ (dBi)",fontsize=16) 
+        ax1.set_ylim(-15,10)
+        ax2.set_ylim(-5,5)
+        ax2.axvspan(85, 500,color = 'black', alpha=0.2)
+        ax2.axvspan(85, 300,color = 'black', alpha=0.2)
+        ax1.axvspan(85, 500,color = 'black', alpha=0.2)
+        ax1.axvspan(85, 300,color = 'black', alpha=0.2)
+
+        plt.xlabel("Freq (MHz)",fontsize=12) 
+        ax2.set_ylabel("$G_{Measured}$ - $G_{Sim}$ (dBi)") 
+        ax1.set_ylabel("Gain (dBi)")
         plt.xticks(fontsize=13)
-        plt.yticks(fontsize=13)
-        plt.grid()
+        #ax2.set_yticks(fontsize=13)
+        ax2.grid()
+        ax1.grid()
+        ax1.legend(fontsize=8,loc='lower right')
+        ax2.text(100, 4, f'Avg (Pulsing): {Res_Mean_Pulsing_avg:.1f}$\pm${Res_STD_Pulsing_avg:.1f} (85-500 MHz) ; {Res_Mean_Pulsing_band_avg:.2f}$\pm${Res_STD_Pulsing_band_avg:.1f} (85-300 MHz)', fontsize=9, color='darkred')
+        ax2.text(100, 2.7, f'Avg (VNA): {Res_Mean_VNA_avg:.1f}$\pm${Res_STD_VNA_avg:.1f} (85-500 MHz) ; {Res_Mean_VNA_band_avg:.1f}$\pm${Res_STD_VNA_band_avg:.1f} (85-300 MHz)', fontsize=9, color='darkgreen')
+        plt.suptitle("Boresight Gain (front)")
+        
 
         plt.savefig("../../plot/Boresight_Residuals_pulsing.png")
         print("Boresight_Residuals_pulsing_VNA.png is saved")    
