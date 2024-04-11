@@ -16,8 +16,8 @@ from rftoolkit import waveform, tx2rx, vna
 
 from scipy.constants import c
 
-#sys.path.append('/home/yzk5303/Trigger')
-#import waveform_t as wt
+sys.path.append('/home/yzk5303/Trigger/LF_Trigger/src')
+import waveform_t as wt
 
 #sys.path.append('/home/yzk5303/Warminster/Zack_package')
 #from waveform import Waveform
@@ -251,10 +251,11 @@ def ImpulseResponse():
     N_SINUOUS = 300
     SINUOUS_SIM = True
     SINUOUS_SIM_ROTATOR = False
-    PLOT_VNA = True
-    PLOT = False
+    PLOT_VNA = False
+    PLOT = True
     savefigname = '../../plot/Gain_Sinuous_Pulsing'
-    PLOT_BORESIGHT_RESIDUALS =True
+    PLOT_BORESIGHT_RESIDUALS =False
+    PLOT_BORESIGHT_SCALE_TO_65IN = True
 
     SINUOUSPATTERN = False
     SINUOUSPATTERN_SIM = False
@@ -364,9 +365,10 @@ def ImpulseResponse():
     #          sinuous               # 
     #=================================
 
-    measurementList = ['LPH_LFBF_V_XE','LPH_LFBF_V_E','LPV_LFBF_V_H','LPV_LFBF_V_XH']
-    legend_list = ['Pulsing:Hport E','          Vport E','          Vport H','          Hport H']
-    #measurementList = ['LPH_LFBF_V_XE']
+    #measurementList = ['LPH_LFBF_V_XE','LPH_LFBF_V_E','LPV_LFBF_V_H','LPV_LFBF_V_XH']
+    #legend_list = ['Pulsing:Hport E','          Vport E','          Vport H','          Hport H']
+    measurementList = ['LPH_LFBF_V_XE']
+    legend_list = ['Warminster Pulsing:Hport E']
     angle = 0
     colorList = ['darkred','red','rosybrown','sienna']
 
@@ -386,7 +388,7 @@ def ImpulseResponse():
         elif angle == -5:
             angle_file='-05'
 
-        plt.figure(figsize=(30, 20))
+        #plt.figure(figsize=(30, 20))
         for i,measurement in enumerate(measurementList):
             directory_sinuous = '/data2/PUEO/Warminster/CSV_DATA/LPDA_Sinuous/'+measurement+'_'+angle_file  
             
@@ -413,8 +415,13 @@ def ImpulseResponse():
                 ax1.plot(freq_sinuous/1e6, xpol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),alpha=0.8, linestyle='--',linewidth=1)
                 
             else:
-                plt.plot(freq_sinuous/1e6, copol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),label='Pulsing: '+measurement, linewidth=3)
-                plt.plot(freq_sinuous/1e6, xpol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),alpha=0.8, linestyle='--',linewidth=2)
+                if PLOT_BORESIGHT_SCALE_TO_65IN:
+                    plt.plot(freq_sinuous/1e6*60/65, copol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),label=legend_list[i], linewidth=1.5)
+                    plt.plot(freq_sinuous/1e6*60/65, xpol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),alpha=0.8, linestyle='--',linewidth=1)
+                else:
+                    plt.plot(freq_sinuous/1e6, copol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),label=legend_list[i], linewidth=3)
+                    plt.plot(freq_sinuous/1e6, xpol_gain, color=plt.get_cmap('gist_heat')(1-float(i)/float(len(measurementList)+2)-0.2),alpha=0.8, linestyle='--',linewidth=2)
+
             #plt.title(f"$\phi={angle}$")
 
         savefigname = savefigname+"_"+str(measurementList)+"angle"+str(angle)
@@ -490,11 +497,15 @@ def ImpulseResponse():
             RG_14[i] = RG_14[i] - TX4_IL
 
         if PLOT_BORESIGHT_RESIDUALS:
-            ax1.plot(freqepd600*1e3*65/60, RG_14, label='Simulation w/ balun',color='indigo',linewidth=1.5)
+            ax1.plot(freqepd600*1e3*65/60, RG_14, label='Simulation w. balun',color='indigo',linewidth=1.5)
             ax1.plot(freqepd600*1e3*65/60, RG_14_cross,color='indigo',linestyle='--',linewidth=1)
         else:
-            plt.plot(freqepd600*1e3*65/60, RG_14, label='simulation',color='indigo',linewidth=3)
-            plt.plot(freqepd600*1e3*65/60, RG_14_cross,color='indigo',linestyle='--',linewidth=2)
+            if PLOT_BORESIGHT_SCALE_TO_65IN:
+                plt.plot(freqepd600*1e3, RG_14, label='simulation w. balun',color='indigo', linewidth=1.5)
+                plt.plot(freqepd600*1e3, RG_14_cross,color='indigo',linestyle='--', linewidth=1)
+            else:
+                plt.plot(freqepd600*1e3*65/60, RG_14, label='simulation w. balun',color='indigo',linewidth=3)
+                plt.plot(freqepd600*1e3*65/60, RG_14_cross,color='indigo',linestyle='--',linewidth=2)
 
         if SINUOUS_SIM_ROTATOR:
             if PLOT_BORESIGHT_RESIDUALS:
@@ -521,21 +532,27 @@ def ImpulseResponse():
     #========================
     #       SAVE plot       #
     #========================
-    plt.axvspan(85, 500,color = 'black', alpha=0.2,label = '85(Turn on)-500 MHz')
+    if PLOT_BORESIGHT_SCALE_TO_65IN:
+        plt.axvspan(50, 500,color = 'black', alpha=0.2,label = '50-500 MHz')
+    else:
+        plt.axvspan(85, 500,color = 'black', alpha=0.2,label = '85 (turn on)-500 MHz')
 
     plt.xlim(0,700)
     plt.ylim(-15,10)
-    plt.xlabel("MHz",fontsize=40) # 16
-    plt.ylabel("dBi",fontsize=40) # 16
-    plt.xticks(fontsize=30)# 13
-    plt.yticks(fontsize=30)# 13
+    plt.xlabel("Freq (MHz)",fontsize=16) # 16
+    plt.ylabel("Gain (dBi)",fontsize=16) # 16
+    plt.xticks(fontsize=13)# 13
+    plt.yticks(fontsize=13)# 13
+    if PLOT_BORESIGHT_SCALE_TO_65IN:
+        plt.title("Sinuous gain at boresight, scaled to full-size (65 in) antenna")
     #plt.title("Tx:LPDA V; Rx: sinuous: V")
     #plt.title("Sinuous gain at boresight")
-    plt.legend(fontsize=30) #12
+    plt.legend(fontsize=11, loc='upper right') #12
     plt.grid(True)
 
     if PLOT:
-        plt.savefig(savefigname+".png")
+        plt.savefig(savefigname+".png", dpi=300)
+        print(savefigname+'.png is saved')
     plt.show()
     plt.close()
 
@@ -634,7 +651,7 @@ def ImpulseResponse():
         plt.suptitle("Boresight Gain (front)")
         
 
-        plt.savefig("../../plot/Boresight_Residuals_pulsing.png")
+        plt.savefig("../../plot/Boresight_Residuals_pulsing.png", dpi=500)
         print("Boresight_Residuals_pulsing_VNA.png is saved")    
     #=================================
     #       RADIATION PATTERN       #
@@ -914,14 +931,24 @@ def Sinuous_IR_Waveform():
 
 
 def IR_waveforms():
+
+    SINUOUS = True
+    
+    N_repeat_LPDA = 1000
+    
     phaseLP = 56.5 / 2 
     d_r = (43*12+1+3/4)*0.0254 # Distance btw backs of two LPDA
     d_r_LPDA = (43*12+1+3/4 - phaseLP*2)*0.0254 # Assume physical center as the Phase center
+    d_r_sinuous = (54*12+2-(11*12+2+3/4))*0.0254 - phaseLP*0.0254#  Distance btw back of the tx (LPDA) to Sinuous plane - phaseLP
+    
+    c=3e8
+    g_from_impresp = lambda freq, vfft: 4 * np.pi * ((freq/c)**2) * np.abs(vfft)**2
+    to_dB = lambda lin: 10 * np.log10(np.abs(lin))
 
     addCompS21 = []
     subCompS21 = []
-    #s21_data_dir = '/data2/PUEO/Warminster/pulsingSetupS21s/'
-    s21_data_dir = '/home/yuchieh/Research/code/antenna/sinuous/Measurement/Warminster/ImpulseResponse/data/pulsingSetupS21s'
+    s21_data_dir = '/data2/PUEO/Warminster/pulsingSetupS21s/'
+    #s21_data_dir = '/home/yuchieh/Research/code/antenna/sinuous/Measurement/Warminster/ImpulseResponse/data/pulsingSetupS21s'
     S21_pulse_List = [s21_data_dir+'S2A1.s2p', s21_data_dir+'S2A2.s2p', s21_data_dir+'A2C1.s2p']    
     S21_Rx_V_List = [s21_data_dir+'S1T.s2p', s21_data_dir+'RAVC3.s2p']
     S21_Rx_H_List = [s21_data_dir+'S1T.s2p', s21_data_dir+'RBHC2.s2p']
@@ -938,42 +965,207 @@ def IR_waveforms():
     #====================
     #Averaging waveform
     #====================
-    #Dir_name = '/data2/PUEO/Warminster/CSV_DATA/LPDA_LPDA/LPH_LPH_0/'   
+    Dir_name = '/data2/PUEO/Warminster/CSV_DATA/LPDA_LPDA/LPH_LPH_0/'   
     # Dir_name = '/home/yuchieh/Research/code/antenna/sinuous/Measurement/Warminster/ImpulseResponse/data/08_02_2024_impulse_measurements/LPH_LPH_0/'
     LPDA_t_v = []
     Pulse_t_v = []
 
     file_list = os.listdir(Dir_name)
     for i, filename in enumerate(file_list):
-        if i>0 and i<20:
+        if i>0 and i<N_repeat_LPDA:
             Time, ch1, ch2, ch3=ReadData(Dir_name+'/'+filename)
 
-            if np.isnan(ch1).any() or np.isnan(ch2).any() or np.isnan(ch3).any():
-                print("nan!")
+            if np.isnan(ch1).any() or np.isnan(ch2).any() or np.isnan(ch3).any() or np.isinf(ch1).any() or np.isinf(ch2).any() or np.isinf(ch3).any():
+                print("nan of inf!")
                 continue
-            print(len(LPDA_t_v))
+            
+            idx_v1 = np.where(ch2==np.max(ch2))
             LPDA_t_v.append(ch2)
             Pulse_t_v.append(ch1)
+    
 
     LPDA_t_v_avg = np.mean(np.array(LPDA_t_v), axis = 0)
     Pulse_t_v_avg = np.mean(np.array(Pulse_t_v), axis = 0)
-    
+
     rx_data = [Time, LPDA_t_v_avg]
     pulse_data = [Time, Pulse_t_v_avg]
-
     #=====================================
     # Use tx2rx func to calculate impulse
     #======================================
 
-    impResp_t, impResp, impResp_f, impRespfft = tx2rx.impulseResponse(rx_data, pulse_data, d_r_LPDA, addComponentsS21=addCompS21, subtractComponentsS21=subCompS21,freqStep='max',verbose=0, returnDomain='both')
+    impResp_t, impResp, impResp_f, impRespfft = tx2rx.impulseResponse(rx_data, pulse_data, d_r_LPDA, addComponentsS21=addCompS21, subtractComponentsS21=subCompS21,verbose=1,returnDomain='both')
+    print(impResp_t*1e9, impResp*1e-9) 
+    plt.plot(impResp_t*1e9,impResp*1e-9,alpha=0.8)
+    plt.xlim(0,200)
+    plt.grid()
     
-    plt.plot(impResp_t,impResp)
+    band_pass_LPDA_v_t = wt.butter_bandpass_filter(impResp, 50*1e6, 3000*1e6, 1.0 / (impResp_t[1] - impResp_t[0]), order=4)
+    plt.plot(impResp_t*1e9,band_pass_LPDA_v_t*1e-9,label='50-3000 MHz',alpha=0.8)
+    plt.legend() 
+    plt.xlabel('Time (ns)')
+    plt.ylabel('Voltage (V)')
+
+
+    plt.savefig("../../testImpulseResponse_LPDA.png")
+    plt.close()
+
+    print("len(impResp_f) = ",len(impResp_f))
+    
+    gain_impulse_response_LPDA = to_dB(g_from_impresp(impResp_f, impRespfft))
+    gain_impulse_response_LPDA_phase = np.rad2deg(np.unwrap(np.angle(impRespfft), period=2*np.pi))
+    #Tx_gain_complex = [impResp_f, gain_impulse_response_LPDA, gain_impulse_response_LPDA_phase]
+
+    evalFreqHz, gain_LPDA = tx2rx.gain(rx_data, pulse_data, d_r_LPDA, gainTx=None, addComponentsS21=addCompS21, subtractComponentsS21=subCompS21, verbose=1)
+    Tx_gain_complex = [impResp_f, gain_impulse_response_LPDA, gain_impulse_response_LPDA_phase]
+
+    
+    plt.plot(impResp_f, gain_impulse_response_LPDA, label='from Impulse')
+    plt.plot(evalFreqHz/1e6, gain_LPDA)
+    plt.xlabel('Freq (MHz)')
+    plt.ylabel('Gain (dBi)')
+    plt.ylim(None, 10)
+    plt.xlim(0,1200)
+    plt.axvspan(85, 550,color = 'black', alpha=0.2, label='85-550 MHz')
+    plt.axvspan(50, 550,color = 'black', alpha=0.1, label='50-550 MHz')
+    plt.grid()
+    plt.legend()
+    plt.savefig("../../testLPDA_gain.png")
+    plt.close()
+
+    #=================================
+    #  Now LPDA-sinuous Runs
+    #=================================
+    
+    #====================
+    #   Avg waveforms           
+    #====================
+    N_repeat = 1000
+    if SINUOUS:
+        angle=0
+        #measurementList = ['LPH_LFBF_V_XE','LPH_LFBF_V_E','LPV_LFBF_V_H','LPV_LFBF_V_XH']
+        measurement='LPH_LFBF_V_XE'
+        angle_file = str(angle)
+        if angle==0:
+            angle_file='00'
+        elif angle==5:
+            angle_file='05'
+        elif angle == -5:
+            angle_file='-05'
+        
+        directory_sinuous = '/data2/PUEO/Warminster/CSV_DATA/LPDA_Sinuous/'+measurement+'_'+angle_file
+        print(directory_sinuous)
+        LPDA_Sinuous_t_v = []
+        Pulse_t_v = []
+        max_index = []
+
+        file_list = os.listdir(directory_sinuous)
+        for i, filename in enumerate(file_list):
+            if i>0 and i<N_repeat:
+                Time, ch1, ch2, ch3=ReadData(directory_sinuous+'/'+filename)
+
+                if np.isnan(ch1).any() or np.isnan(ch2).any() or np.isnan(ch3).any() or np.isinf(ch1).any() or np.isinf(ch2).any() or np.isinf(ch3).any():
+                    print("nan of inf!")
+                    continue
+                #print(len(LPDA_t_v))
+                LPDA_Sinuous_t_v.append(ch2)
+                Pulse_t_v.append(ch1)
+                
+                idx_v1 = np.where(ch2==np.max(ch2))
+                max_index.append(idx_v1)
+
+        LPDA_Sinuous_t_v_avg = np.mean(np.array(LPDA_Sinuous_t_v), axis = 0)
+        Pulse_t_v_avg_1 = np.mean(np.array(Pulse_t_v), axis = 0)
+        rx_data_1 = [Time, LPDA_Sinuous_t_v_avg]
+        pulse_data_1 = [Time, Pulse_t_v_avg_1]
+        
+        #=====================================
+        # Use tx2rx func to calculate impulse
+        #======================================
+
+        impResp_t_sinuous, impResp_sinuous, impResp_f_sinuous, impRespfft_sinuous = tx2rx.impulseResponse(rx_data_1, pulse_data_1, d_r_sinuous, gainTx=Tx_gain_complex,addComponentsS21=addCompS21, subtractComponentsS21=subCompS21,verbose=1,returnDomain='both')
+        
+        FilterRange=[80, 500]
+        band_pass_Sinuous_v_t = wt.butter_bandpass_filter(impResp_sinuous, FilterRange[0]*1e6, FilterRange[1]*1e6, 1.0 / (impResp_t_sinuous[1] - impResp_t_sinuous[0]), order=4)
+
+        #SIMULATION
+        
+        data=np.loadtxt("../Simulation/Waveform_Warminster_rotator_Theta90Phi0.csv",skiprows=1,delimiter = ",")
+        Sim_time = data[:,0]
+        Sim_sinuous = data[:,1]
+
+        # apply balun correction
+        '''
+        sim_wave = Waveform(tcol=Sim_time, vcol=Sim_sinuous)
+        gain_impulse_response_Sinuous_Simulation = to_dB(g_from_impresp(impResp_f, impRespfft))
+        gain_impulse_response_LPDA_phase = np.rad2deg(np.unwrap(np.angle(impRespfft), period=np.pi))
+        '''
+        #Sim_time, Sim_sinuous = WaveformSIM.IR_waveform(90,0,3)
+        Sim_sinuous = wt.butter_bandpass_filter(Sim_sinuous, FilterRange[0]*1e-3, FilterRange[1]*1e-3, 1.0 / (Sim_time[1] - Sim_time[0]), order=4)
+    
+
+        Sim_sinuous = Sim_sinuous / max(abs(Sim_sinuous))* max(abs(band_pass_Sinuous_v_t)*1e-9) 
+
+        threshold = 0.15
+
+        
+        idx_v1 = np.where(abs(band_pass_Sinuous_v_t)*1e-9 > threshold)[0][0]
+        idx_v2 = np.where(abs(Sim_sinuous) > threshold)[0][0]
+        time_shift = impResp_t_sinuous[idx_v1]*1e9 - Sim_time[idx_v2]
+        
+        flip = 1
+
+        if impResp_t_sinuous[idx_v1]*Sim_time[idx_v2]<0:
+            flip=-1
+        
+        
+        if flip ==1:
+            polarity='+'
+        else:
+            polarity='-'
+
+        Sim_sinuous*=flip
+
+        print("impResp_t_sinuous[idx_v1]*1e9=",impResp_t_sinuous[idx_v1]*1e9)
+        print("Sim_time[idx_v2]=", Sim_time[idx_v2])
+        
+        plt.plot(Sim_time + time_shift, Sim_sinuous, linestyle='--',color='darkblue',label=f'Simulation; Polarity:{polarity}')
+
+
+
+        plt.plot(impResp_t_sinuous*1e9,band_pass_Sinuous_v_t*1e-9, label=f'Measuremenet', alpha=0.7)
+        plt.xlim(0,100)
+        plt.grid()
+        plt.legend()
+        plt.xlabel('Time (ns)')
+        plt.ylabel('Voltage (V)')
+        plt.title(f'Measurement:{measurement}, Filter:{FilterRange}MHz')
+        plt.savefig(f"../../testImpulseResponse_sinuous_Filter{FilterRange}_Measurement_{measurement}.png", dpi=300)
+        plt.close()
+        
+        
+
+
+        evalFreqHz, gain_sinuous = tx2rx.gain(rx_data_1, pulse_data_1, d_r_sinuous, gainTx=Tx_gain_complex, addComponentsS21=addCompS21, subtractComponentsS21=subCompS21, verbose=1)
+
+        plt.plot(impResp_f_sinuous/1e6,to_dB(g_from_impresp(impResp_f_sinuous,impRespfft_sinuous)))
+        plt.plot(evalFreqHz/1e6, gain_sinuous, label='from magnitude')
+        plt.xlim(0,600)
+        plt.ylim(-15, 10)
+        plt.grid()
+        plt.xlabel('Freq (MHz)')
+        plt.ylabel('Gain (dBi)')
+        plt.axvspan(85, 550,color = 'black', alpha=0.2, label='85-550 MHz')
+        plt.axvspan(50, 550,color = 'black', alpha=0.1, label='50-550 MHz')
+        plt.legend()
+        plt.savefig("../../testImpulseResponse_Gain_sinuous.png")
+        plt.close()
+
 
 if __name__=="__main__":
     #Sinuous_IR_Waveform()
-    ImpulseResponse()
-    #IR_waveforms()
+    #ImpulseResponse()
+    IR_waveforms()
+    
     #Dir_name = '/home/yuchieh/Research/code/antenna/sinuous/Measurement/Warminster/ImpulseResponse/data/08_02_2024_impulse_measurements/LPH_LPH_0'
 
     #A_complex_deconv = LPDA_IR_Waveform(Dir_name)
-

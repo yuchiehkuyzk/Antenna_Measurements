@@ -16,7 +16,7 @@ time=np.arange(0,80,0.1)
 
 #V_interpolate=f(time)
 V_interpolate=f(time)
-output_file = f'Waveform_Theta90Phi0.csv'
+output_file = f'Waveform_Warminster_rotator_Theta90Phi0.csv'
 print(output_file)
 # Save the array values to a text file without brackets
 
